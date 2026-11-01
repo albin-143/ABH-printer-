@@ -1,0 +1,24 @@
+name: abh_printer
+description: ABH Printer - Bluetooth thermal printer app
+version: 1.0.0+1
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  print_bluetooth_thermal: ^1.1.4
+  esc_pos_utils_plus: ^2.0.3
+  image: ^4.1.7
+  image_picker: ^1.0.7
+  file_picker: ^8.0.0
+  pdfx: ^2.6.0
+  receive_sharing_intent: ^1.8.1
+  permission_handler: ^11.3.0
+  shared_preferences: ^2.2.2
+dev_dependencies:
+  flutter_launcher_icons: ^0.13.1
+flutter:
+  uses-material-design: true
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/icon.png"
