@@ -93,6 +93,14 @@ class _HomeState extends State<Home> {
         await _printImage(await File(f.path).readAsBytes());
       } else if (f.path.toLowerCase().endsWith('.pdf')) {
         await _printPdf(f.path);
+      } else {
+        try {
+          final t = await File(f.path).readAsString();
+          setState(() => text.text = t);
+          _msg('Notes text vanthuchu - Print Text press pannunga');
+        } catch (_) {
+          _msg('Intha file type support illa');
+        }
       }
     }
   }
