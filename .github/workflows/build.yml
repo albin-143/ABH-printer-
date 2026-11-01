@@ -1,0 +1,54 @@
+name: Build APK
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Create android project
+        run: |
+          sudo apt-get update && sudo apt-get install -y librsvg2-bin
+          mkdir -p /tmp/keep && cp main.dart pubspec.yaml icon.svg /tmp/keep/
+          flutter create --org com.abh --project-name abh_printer --platforms android .
+          cp /tmp/keep/main.dart lib/main.dart
+          cp /tmp/keep/pubspec.yaml pubspec.yaml
+          mkdir -p assets
+          rsvg-convert -w 1024 -h 1024 icon.svg -o assets/icon.png
+      - name: Patch manifest and gradle
+        run: |
+          python3 - <<'PY'
+          import re
+          p = 'android/app/src/main/AndroidManifest.xml'
+          s = open(p).read()
+          perms = ''.join('<uses-permission android:name="android.permission.%s"/>\n' % n for n in
+            ['BLUETOOTH','BLUETOOTH_ADMIN','BLUETOOTH_CONNECT','BLUETOOTH_SCAN','ACCESS_FINE_LOCATION'])
+          s = s.replace('<application', perms + '<application', 1)
+          s = re.sub(r'android:label="[^"]*"', 'android:label="ABH Printer"', s, 1)
+          s = s.replace('android:launchMode="singleTop"', 'android:launchMode="singleTask"')
+          flt = ''.join('<intent-filter><action android:name="android.intent.action.SEND"/><category android:name="android.intent.category.DEFAULT"/><data android:mimeType="%s"/></intent-filter>\n' % m
+            for m in ['text/plain','image/*','application/pdf'])
+          s = s.replace('</activity>', flt + '</activity>', 1)
+          open(p, 'w').write(s)
+          PY
+          for f in android/app/build.gradle android/app/build.gradle.kts; do
+            [ -f "$f" ] && sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/; s/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/' "$f"
+          done
+          true
+      - name: Build
+        run: |
+          flutter pub get
+          dart run flutter_launcher_icons
+          flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ABH-Printer-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
