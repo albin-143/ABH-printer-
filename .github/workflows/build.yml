@@ -43,7 +43,18 @@ jobs:
             [ -f "$f" ] && sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/; s/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/; s/compileSdk = flutter.compileSdkVersion/compileSdk = 37/; s/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 37/' "$f"
           done
           echo "android.suppressUnsupportedCompileSdk=37" >> android/gradle.properties
-          true
+          true      - name: Force compileSdk 36 for plugins
+        run: |
+          mkdir -p ~/.gradle
+          cat > ~/.gradle/init.gradle <<'EOF'
+          allprojects {
+              afterEvaluate { p ->
+                  if (p.hasProperty('android')) {
+                      p.android.compileSdkVersion 36
+                  }
+              }
+          }
+          EOF
       - name: Build
         run: |
           flutter pub get
