@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image/image.dart' as img;
@@ -250,7 +251,16 @@ class _HomeState extends State<Home> {
           ChoiceChip(label: const Text('Right'), selected: align == 2, onSelected: (_) => setState(() => align = 2)),
         ]),
         const SizedBox(height: 8),
-        FilledButton.icon(onPressed: _printText, icon: const Icon(Icons.print), label: const Text('Print Text')),
+        Row(children: [
+          Expanded(child: OutlinedButton.icon(
+            onPressed: () async {
+              final d = await Clipboard.getData('text/plain');
+              if (d?.text != null) setState(() => text.text = d!.text!);
+            },
+            icon: const Icon(Icons.paste), label: const Text('Paste'))),
+          const SizedBox(width: 12),
+          Expanded(child: FilledButton.icon(onPressed: _printText, icon: const Icon(Icons.print), label: const Text('Print Text'))),
+        ]),
         const SizedBox(height: 12),
         Text('Tip: Notes app-la Share -> ABH Printer select pannunga.', style: TextStyle(color: cs.outline)),
       ]),
