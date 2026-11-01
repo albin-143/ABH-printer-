@@ -68,9 +68,23 @@ class _HomeState extends State<Home> {
   bool bold = false;
   int align = 0; // 0 left 1 center 2 right
 
+  static const ch = MethodChannel('abh/text');
+
+  Future<void> _pull() async {
+    try {
+      final t = await ch.invokeMethod<String>('get');
+      if (t != null && t.isNotEmpty && mounted) {
+        setState(() => text.text = t);
+        _msg('Text vanthuchu - Print Text press pannunga');
+      }
+    } catch (_) {}
+  }
+
   @override
   void initState() {
     super.initState();
+    ch.setMethodCallHandler((c) async { if (c.method == 'new') _pull(); });
+    _pull();
     _loadPrefs();
     ReceiveSharingIntent.instance.getInitialMedia().then(_onShared);
     ReceiveSharingIntent.instance.getMediaStream().listen(_onShared);
