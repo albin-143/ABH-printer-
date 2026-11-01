@@ -43,18 +43,23 @@ jobs:
             [ -f "$f" ] && sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/; s/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/; s/compileSdk = flutter.compileSdkVersion/compileSdk = 37/; s/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 37/' "$f"
           done
           echo "android.suppressUnsupportedCompileSdk=37" >> android/gradle.properties
-          true      - name: Force compileSdk 36 for plugins
-        run: |
-          mkdir -p ~/.gradle
-          cat > ~/.gradle/init.gradle <<'EOF'
-          allprojects {
-              afterEvaluate { p ->
-                  if (p.hasProperty('android')) {
-                      p.android.compileSdkVersion 36
+          if [ -f android/build.gradle.kts ]; then
+            cat > /tmp/fix.kts <<'KTS'
+          subprojects {
+              val fixSdk = { p: Project ->
+                  val a = p.extensions.findByName("android")
+                  if (a != null) {
+                      a.javaClass.methods.firstOrNull { it.name == "setCompileSdk" }?.invoke(a, 37)
                   }
               }
+              if (state.executed) fixSdk(this) else afterEvaluate { fixSdk(this) }
           }
-          EOF
+
+          KTS
+            cat /tmp/fix.kts android/build.gradle.kts > /tmp/new.kts
+            mv /tmp/new.kts android/build.gradle.kts
+          fi
+          true
       - name: Build
         run: |
           flutter pub get
