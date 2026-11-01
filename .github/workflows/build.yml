@@ -23,23 +23,56 @@ jobs:
           cp /tmp/keep/pubspec.yaml pubspec.yaml
           mkdir -p assets
           rsvg-convert -w 1024 -h 1024 icon.svg -o assets/icon.png
-      - name: Patch manifest and gradle
+      - name: Write manifest
         run: |
-          python3 - <<'PY'
-          import re
-          p = 'android/app/src/main/AndroidManifest.xml'
-          s = open(p).read()
-          perms = ''.join('<uses-permission android:name="android.permission.%s"/>\n' % n for n in
-            ['BLUETOOTH','BLUETOOTH_ADMIN','BLUETOOTH_CONNECT','BLUETOOTH_SCAN','ACCESS_FINE_LOCATION'])
-          s = s.replace('<application', perms + '<application', 1)
-          s = re.sub(r'android:label="[^"]*"', 'android:label="ABH Printer"', s, 1)
-          s = s.replace('android:launchMode="singleTop"', 'android:launchMode="singleTask"')
-          flt = ''.join('<intent-filter><action android:name="android.intent.action.%s"/><category android:name="android.intent.category.DEFAULT"/><data android:mimeType="%s"/></intent-filter>\n' % (a, m)
-            for a in ['SEND','SEND_MULTIPLE'] for m in ['text/plain','text/*','image/*','application/pdf','*/*'])
-          s = s.replace('</activity>', flt + '</activity>', 1)
-          open(p, 'w').write(s)
-          PY
-          grep -c SEND android/app/src/main/AndroidManifest.xml
+          cat > android/app/src/main/AndroidManifest.xml <<'XML'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.BLUETOOTH"/>
+              <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
+              <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+              <uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>
+              <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+              <application android:label="ABH Printer" android:name="${applicationName}" android:icon="@mipmap/ic_launcher">
+                  <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask" android:theme="@style/LaunchTheme" android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode" android:hardwareAccelerated="true" android:windowSoftInputMode="adjustResize">
+                      <meta-data android:name="io.flutter.embedding.android.NormalTheme" android:resource="@style/NormalTheme"/>
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                      <intent-filter>
+                          <action android:name="android.intent.action.SEND"/>
+                          <category android:name="android.intent.category.DEFAULT"/>
+                          <data android:mimeType="text/*"/>
+                      </intent-filter>
+                      <intent-filter>
+                          <action android:name="android.intent.action.SEND"/>
+                          <category android:name="android.intent.category.DEFAULT"/>
+                          <data android:mimeType="image/*"/>
+                      </intent-filter>
+                      <intent-filter>
+                          <action android:name="android.intent.action.SEND"/>
+                          <category android:name="android.intent.category.DEFAULT"/>
+                          <data android:mimeType="application/pdf"/>
+                      </intent-filter>
+                      <intent-filter>
+                          <action android:name="android.intent.action.SEND_MULTIPLE"/>
+                          <category android:name="android.intent.category.DEFAULT"/>
+                          <data android:mimeType="*/*"/>
+                      </intent-filter>
+                  </activity>
+                  <meta-data android:name="flutterEmbedding" android:value="2"/>
+              </application>
+              <queries>
+                  <intent>
+                      <action android:name="android.intent.action.PROCESS_TEXT"/>
+                      <data android:mimeType="text/plain"/>
+                  </intent>
+              </queries>
+          </manifest>
+          XML
+          grep -c "action.SEND" android/app/src/main/AndroidManifest.xml
+      - name: Patch gradle
+        run: |
           for f in android/app/build.gradle android/app/build.gradle.kts; do
             [ -f "$f" ] && sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/; s/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/; s/compileSdk = flutter.compileSdkVersion/compileSdk = 37/; s/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 37/' "$f"
           done
