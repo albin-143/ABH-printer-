@@ -40,8 +40,9 @@ jobs:
           open(p, 'w').write(s)
           PY
           for f in android/app/build.gradle android/app/build.gradle.kts; do
-            [ -f "$f" ] && sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/; s/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/' "$f"
+            [ -f "$f" ] && sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/; s/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/; s/compileSdk = flutter.compileSdkVersion/compileSdk = 37/; s/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 37/' "$f"
           done
+          echo "android.suppressUnsupportedCompileSdk=37" >> android/gradle.properties
           true
       - name: Build
         run: |
