@@ -58,7 +58,7 @@ class Home extends StatefulWidget {
   State<Home> createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
+class _HomeState extends State<Home> with WidgetsBindingObserver {
   List<BluetoothInfo> devices = [];
   BluetoothInfo? selected;
   bool connected = false;
@@ -69,6 +69,30 @@ class _HomeState extends State<Home> {
   int align = 0; // 0 left 1 center 2 right
 
   static const ch = MethodChannel('abh/text');
+  String _lastClip = '';
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState s) {
+    if (s == AppLifecycleState.resumed) _checkClip();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  Future<void> _checkClip() async {
+    try {
+      final d = await Clipboard.getData('text/plain');
+      final t = d?.text ?? '';
+      if (t.trim().isNotEmpty && t != _lastClip && mounted) {
+        _lastClip = t;
+        setState(() => text.text = t);
+        _msg('Copy pannina text vanthuchu - Print Text press pannunga');
+      }
+    } catch (_) {}
+  }
 
   Future<void> _pull() async {
     try {
@@ -83,8 +107,10 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     ch.setMethodCallHandler((c) async { if (c.method == 'new') _pull(); });
     _pull();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkClip());
     _loadPrefs();
     ReceiveSharingIntent.instance.getInitialMedia().then(_onShared);
     ReceiveSharingIntent.instance.getMediaStream().listen(_onShared);
